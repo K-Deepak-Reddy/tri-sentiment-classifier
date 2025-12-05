@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sentiment Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Sentiment Prediction</h1>
+
+        <form id="form">
+            <input type="text" id="user_input" name="user_input" placeholder="Enter text" required>
+            <select id="model_select" name="model">
+                <option value="rnn">RNN</option>
+                <option value="lstm">LSTM</option>
+                <option value="bilstm">BiLSTM</option>
+            </select>
+            <button type="submit">Predict</button>
+        </form>
+
+        <div id="results"></div>
+
+        <button id="evaluate-btn">Show Accuracy & Confusion Matrix</button>
+
+        <!-- Loading message -->
+        <div id="loading-msg" style="display: none; margin-top: 10px; color: #555; font-weight: bold;">
+            Please wait a moment...
+        </div>
+
+        <div id="confusion-matrix" style="display:none;">
+            <h3>Confusion Matrix</h3>
+            <img id="matrix_img" src="" width="300" alt="Confusion Matrix">
+            <div id="accuracy"></div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('form').onsubmit = async function(e) {
+            e.preventDefault();
+            const input = document.getElementById('user_input').value;
+            const model = document.getElementById('model_select').value;
+
+            const res = await fetch('/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: `user_input=${encodeURIComponent(input)}`
+            });
+            const data = await res.json();
+
+            document.getElementById('results').innerHTML = `
+                <p><strong>Prediction using ${model.toUpperCase()}:</strong> 
+                <span style="color: ${
+                    data[model] === 'Positive' ? 'green' : data[model] === 'Negative' ? 'red' : 'orange'
+                }">${data[model]}</span></p>`;
+        };
+
+        document.getElementById('evaluate-btn').onclick = async function() {
+            const model = document.getElementById('model_select').value;
+
+            // Show loading message
+            document.getElementById('loading-msg').style.display = 'block';
+
+            const res = await fetch('/evaluate');
+            const data = await res.json();
+
+            document.getElementById('matrix_img').src = `/static/plots/cm_${model}.png`;
+            document.getElementById('accuracy').innerHTML = `<p>${model.toUpperCase()} Accuracy: ${(data[model.toUpperCase()] * 100).toFixed(2)}%</p>`;
+            document.getElementById('confusion-matrix').style.display = 'block';
+
+            // Hide loading message
+            document.getElementById('loading-msg').style.display = 'none';
+        };
+    </script>
+</body>
+</html>
